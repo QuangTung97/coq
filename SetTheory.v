@@ -40,7 +40,7 @@ Proof.
   trivial.
 Qed.
 
-Theorem empty_equal: forall A B: U, is_empty(A) -> is_empty(B) -> A = B.
+Theorem empty_equal: forall A B: U, is_empty A -> is_empty B -> A = B.
 Proof.
   intros A B HA HB.
   apply extension_axiom.
@@ -398,6 +398,38 @@ Proof.
   apply H4. auto.
 Qed.
 
+Theorem diff_subset: forall A B: U, is_subset (diff A B) A.
+Proof.
+  intros A B.
+  pose (H := diff_prop A B).
+  intros x.
+  destruct (H x) as [H1 _].
+  intros H2.
+  destruct (H1 H2). auto.
+Qed.
+
+Theorem theorem_2_2_1: forall A F: U, exists! D: U, forall Y, In Y D <-> exists C, In C F /\ Y = diff A C.
+Proof.
+  intros A F.
+  assert (forall Y, (exists C, In C F /\ Y = diff A C) -> In Y (power_set A)).
+  - intros Y H.
+    induction H as [C H].
+    destruct H as [H1 H2].
+    pose (H3 := diff_subset A C).
+    rewrite H2.
+    apply subset_in_power_set. trivial.
+  - pose (H1 := theorem_2_1_3 (fun Y => exists C, In C F /\ Y = diff A C)). simpl in H1.
+    apply H1.
+    exists (power_set A).
+    intros x H2.
+    induction H2 as [C H2].
+    destruct H2 as [_ H3].
+    apply subset_in_power_set.
+    rewrite H3.
+    apply diff_subset.
+Qed.
+
+(** TODO **)
 Theorem theorem_2_1_11: forall A B: U, power_set (intersect A B) = intersect (power_set A) (power_set B).
 Proof.
   intros A B.
