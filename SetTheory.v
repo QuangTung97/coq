@@ -143,6 +143,8 @@ Variable intersect_set_prop : forall A: U, forall P: non_empty A, is_intersect_s
 Parameter power_set : U -> U.
 Variable power_set_prop : forall A: U, is_power_set (power_set A) A.
 
+Definition pair (A B: U) := pair_set (pair_set A A) (pair_set A B).
+
 Theorem intersect_sym: forall A B: U, intersect A B = intersect B A.
 Proof.
   intros A B.
@@ -371,23 +373,38 @@ Proof.
   destruct H1. auto.
 Qed.
 
-Theorem intersect_subset: forall A B X: U, is_subset X (intersect A B) -> is_subset X A /\ is_subset X B.
+Theorem intersect_subset: forall A B X: U, is_subset X (intersect A B) <-> is_subset X A /\ is_subset X B.
 Proof.
-  intros A B X H.
+  intros A B X.
   split.
-  - intros x H1.
-    pose (H2 := H x H1).
-    destruct (intersect_in A B x H2). auto.
-  - intros x H1.
-    pose (H2 := H x H1).
-    destruct (intersect_in A B x H2). auto.
+  - intros H.
+    split.
+    + intros x H1.
+      pose (H2 := H x H1).
+      destruct (intersect_in A B x H2). auto.
+    + intros x H1.
+      pose (H2 := H x H1).
+      destruct (intersect_in A B x H2). auto.
+  - intros H e He.
+    destruct H as [H1 H2].
+    pose (H3 := intersect_prop A B e).
+    destruct H3 as [_ H3].
+    apply H3.
+    split.
+    + apply H1. auto.
+    + apply H2. auto.
 Qed.
 
-Theorem subset_in_power_set: forall A P: U, is_subset A P -> In A (power_set P).
+Theorem subset_in_power_set: forall A P: U, is_subset A P <-> In A (power_set P).
 Proof.
-  intros A P H.
-  pose (H1 := power_set_prop P A).
-  destruct H1. auto.
+  intros A P.
+  split.
+  - intros H.
+    pose (H1 := power_set_prop P A).
+    destruct H1. auto.
+  - intros H.
+    pose (H1 := power_set_prop P A).
+    destruct H1. auto.
 Qed.
 
 Theorem intersect_intro: forall A B x: U, In x A -> In x B -> In x (intersect A B).
@@ -396,6 +413,42 @@ Proof.
   pose (H3 := intersect_prop A B x).
   destruct H3 as [_ H4].
   apply H4. auto.
+Qed.
+
+Theorem theorem_2_1_11: forall A B: U, power_set (intersect A B) = intersect (power_set A) (power_set B).
+Proof.
+  intros A B.
+  apply extension_axiom.
+  intros x. split.
+  - intros H.
+    assert (is_subset x (intersect A B)) as H1.
+      pose (H1 := power_set_prop (intersect A B) x).
+      destruct H1. auto.
+
+    pose (H2 := intersect_prop A B).
+    pose (H3' := intersect_subset A B x).
+    destruct H3' as [H3' _].
+    destruct (H3' H1) as [H3 H4].
+    pose (H5 := subset_in_power_set x A).
+    destruct H5 as [H5 _].
+    pose (H6 := subset_in_power_set x B).
+    destruct H6 as [H6 _].
+    apply intersect_intro. auto. auto.
+  - intros H.
+    pose (H1 := intersect_in (power_set A) (power_set B) x H).
+    destruct H1 as [H1 H2].
+    pose (H3 := subset_in_power_set x A).
+    destruct H3 as [_ H3].
+    pose (H4 := subset_in_power_set x B).
+    destruct H4 as [_ H4].
+    assert (is_subset x (intersect A B)) as H5.
+    + pose (H5 := intersect_subset A B x).
+      destruct H5 as [_ H5]. apply H5.
+      auto.
+    + pose (H6 := subset_in_power_set x (intersect A B)).
+      destruct H6 as [H6 _].
+      apply H6.
+      auto.
 Qed.
 
 Theorem diff_subset: forall A B: U, is_subset (diff A B) A.
@@ -411,50 +464,183 @@ Qed.
 Theorem theorem_2_2_1: forall A F: U, exists! D: U, forall Y, In Y D <-> exists C, In C F /\ Y = diff A C.
 Proof.
   intros A F.
-  assert (forall Y, (exists C, In C F /\ Y = diff A C) -> In Y (power_set A)).
-  - intros Y H.
-    induction H as [C H].
-    destruct H as [H1 H2].
-    pose (H3 := diff_subset A C).
-    rewrite H2.
-    apply subset_in_power_set. trivial.
-  - pose (H1 := theorem_2_1_3 (fun Y => exists C, In C F /\ Y = diff A C)). simpl in H1.
-    apply H1.
-    exists (power_set A).
-    intros x H2.
-    induction H2 as [C H2].
-    destruct H2 as [_ H3].
-    apply subset_in_power_set.
-    rewrite H3.
-    apply diff_subset.
+  pose (H1 := theorem_2_1_3 (fun Y => exists C, In C F /\ Y = diff A C)). simpl in H1.
+  apply H1.
+  exists (power_set A).
+  intros x H2.
+  induction H2 as [C H2].
+  destruct H2 as [_ H3].
+  apply subset_in_power_set.
+  rewrite H3.
+  apply diff_subset.
 Qed.
 
-(** TODO **)
-Theorem theorem_2_1_11: forall A B: U, power_set (intersect A B) = intersect (power_set A) (power_set B).
+Theorem pairing_axiom_unique: forall A B: U, exists ! C: U, is_pair_set C A B.
 Proof.
   intros A B.
+  induction (pairing_axiom A B) as [S H].
+  exists S.
+  unfold unique.
+  split.
+  - auto.
+  - intros S' H1.
+    apply extension_axiom.
+    intros x.
+    split.
+    + intros H2.
+      pose (H3 := H x).
+      destruct H3 as [H3 _].
+      pose (H4 := H1 x).
+      destruct H4 as [_ H4].
+      auto.
+    + intros H2.
+      pose (H3 := H x).
+      destruct H3 as [_ H3].
+      pose (H4 := H1 x).
+      destruct H4 as [H4 _].
+      auto.
+Qed.
+
+Theorem lemma_3_1_2_double: forall x a b: U, pair_set x x = pair_set a b -> x = a /\ x = b.
+Proof.
+  intros x a b H1.
+  pose (H2 := pair_set_prop x x).
+  pose (H3 := pair_set_prop a b).
+  unfold is_pair_set in H2, H3.
+  rewrite H1 in H2.
+  pose (H4 := H2 a).
+  pose (H5 := H2 b).
+
+  assert (In a (pair_set a b)) as H6.
+  destruct (H3 a) as [_ H6]. auto.
+
+  assert (In b (pair_set a b)) as H7.
+  destruct (H3 b) as [_ H7]. auto.
+
+  destruct H4 as [H4 _].
+  destruct H5 as [H5 _].
+
+  split.
+  - symmetry. destruct (H4 H6). auto. auto.
+  - symmetry. destruct (H5 H7). auto. auto.
+Qed.
+
+Theorem lemma_3_1_2: forall u v x y: U, pair x y = pair u v -> x = y -> (x = u /\ y = v).
+Proof.
+  intros u v x y H1 H2.
+  symmetry in H2.
+  rewrite H2 in H1.
+  unfold pair in H1.
+  pose (t := pair_set x x).
+  pose (a := pair_set u u).
+  pose (b := pair_set u v).
+
+  pose (H3 := lemma_3_1_2_double t a b H1).
+  destruct H3 as [H3 H4].
+
+  pose (H5 := lemma_3_1_2_double x u u H3).
+  destruct H5 as [H5 _].
+  pose (H6 := lemma_3_1_2_double x u v H4).
+  destruct H6 as [_ H6].
+  rewrite H2.
+  auto.
+Qed.
+
+Theorem pair_set_sym: forall a b: U, pair_set a b = pair_set b a.
+Proof.
+  intros a b.
+  pose (H1 := pair_set_prop a b).
+  pose (H2 := pair_set_prop b a).
   apply extension_axiom.
-  intros x. split.
+  intros x.
+  split.
   - intros H.
-    assert (is_subset x (intersect A B)) as H1.
-      pose (H1 := power_set_prop (intersect A B) x).
-      destruct H1. auto.
+    apply (H2 x).
+    pose (H3 := H1 x).
+    destruct H3 as [H3 _].
+    pose (H4 := H3 H).
+    case H4. auto. auto.
+  - intros H.
+    apply (H1 x).
+    pose (H3 := H2 x).
+    destruct H3 as [H3 _].
+    pose (H4 := H3 H).
+    case H4. auto. auto.
+Qed.
 
-    pose (H2 := intersect_prop A B).
-    pose (H3 := intersect_subset A B x H1).
-    destruct H3 as [H3 H4].
-    pose (H5 := subset_in_power_set x A H3).
-    pose (H6 := subset_in_power_set x B H4).
-    apply intersect_intro. auto. auto.
-  - 
-    
-      
-      
-      
-      
-  
+Theorem pair_set_equal: forall a b x y: U, pair_set a b = pair_set x y -> a = x \/ a = y.
+Proof.
+  intros a b x y H1.
+  pose (H2 := pair_set_prop x y a).
+  apply H2.
+  symmetry in H1. rewrite H1.
+  pose (H3 := pair_set_prop a b a).
+  apply H3.
+  left. auto.
+Qed.
 
+Theorem pair_set_equal2: forall a b x y: U, pair_set a b = pair_set x y -> b = x \/ b = y.
+Proof.
+  intros a b x y H1.
+  pose (H2 := pair_set_prop x y b).
+  apply H2.
+  symmetry in H1. rewrite H1.
+  pose (H3 := pair_set_prop a b b).
+  apply H3.
+  right. auto. 
+Qed.
 
+Theorem theorem_3_1_3_diff: forall x a b: U, pair_set x x = pair_set a b -> a <> b -> False.
+Proof.
+  intros x a b H1 H2.
+  pose (H3 := lemma_3_1_2_double x a b H1).
+  destruct H3 as [H3 H4].
+  rewrite H3 in H4.
+  auto.
+Qed.
+
+Theorem theorem_3_1_3: forall x y u v: U, pair x y = pair u v -> x = u /\ y = v.
+Proof.
+  intros x y u v.
+  pose (H1 := excluded_middle (x = y)).
+  destruct H1.
+  intros H1.
+  apply lemma_3_1_2. auto. auto.
+  intros H1.
+  pose (H2 := excluded_middle (u = v)).
+  destruct H2.
+  assert (u = x /\ v = y) as H3.
+  apply lemma_3_1_2. auto. auto.
+  destruct H3 as [H3 H4].
+  auto.
+
+  unfold pair in H1.
+  pose (H1' := H1).
+  pose (H2 := pair_set_equal (pair_set x x) (pair_set x y) (pair_set u u) (pair_set u v) H1).
+  assert (x = u) as Hx.
+    destruct H2.
+    pose (H3 := lemma_3_1_2_double x u u H2).
+    destruct H3. auto.
+    pose (H3 := theorem_3_1_3_diff x u v H2 H0).
+    contradiction.
+
+  split. auto.
+  symmetry in Hx.
+  rewrite Hx in H1'.
+  pose (H3 := pair_set_equal2 (pair_set x x) (pair_set x y) (pair_set x x) (pair_set x v) H1').
+  case H3.
+  - intros H4.
+    symmetry in H4.
+    assert False.
+    apply (theorem_3_1_3_diff x x y). auto. auto.
+    contradiction.
+  - intros H4.
+    assert (y = x \/ y = v).
+    apply (pair_set_equal2 x y x v). auto.
+    case H5.
+    + intros H6. symmetry in H6. contradiction.
+    + auto.
+Qed.
 
 
 
